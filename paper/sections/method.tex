@@ -1,0 +1,130 @@
+\section{The \menet{} Model}
+\label{sec:method}
+
+\menet{} (Morpho-Evidential Network) classifies a document $x$ as hoax ($y{=}1$) or valid ($y{=}0$).
+It combines two views of the same document: a \emph{contextual stream} that learns distributed
+$n$-gram detectors from raw tokens, and a \emph{symbolic stream} that encodes a compact, human-readable
+profile $\bm{\phi}(x)\in\mathbb{R}^{13}$ of Indonesian morphological, evidential and stylistic
+properties. A learned element-wise gate decides, per hidden dimension and per document, how much of the
+fused representation comes from each stream (Figure~\ref{fig:arch}).
+
+\begin{figure}[t]
+\centering
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{c}
+\fbox{\begin{minipage}{0.95\linewidth}\centering\small
+\textbf{Contextual stream:} tokens $\rightarrow$ Embedding (128) $\rightarrow$ Conv1D ($k{=}5$, 128) $\rightarrow$ BN $\rightarrow$ ReLU $\rightarrow$ global max-pool $\rightarrow$ $\mathbf{h}_t\in\mathbb{R}^{128}$\\[4pt]
+\textbf{Symbolic stream:} text $\rightarrow$ Indonesian linguistic profiler $\rightarrow$ $\bm{\phi}(x)\in\mathbb{R}^{13}$ $\rightarrow$ standardise $\rightarrow$ MLP $\rightarrow$ $\mathbf{h}_\ell\in\mathbb{R}^{64}$\\[4pt]
+$\Downarrow$\\[2pt]
+\textbf{Gated cross-stream fusion:} $\mathbf{g}=\sigma\!\big(\mathbf{W}_g[\mathbf{z}_t;\mathbf{z}_\ell]\big)$,\quad
+$\mathbf{u}=[\mathbf{g}\odot\mathbf{z}_t;\;(\mathbf{1}-\mathbf{g})\odot\mathbf{z}_\ell]$ $\rightarrow$ Linear $\rightarrow$ LayerNorm $\rightarrow$ ReLU $\rightarrow$ $\mathbf{h}\in\mathbb{R}^{128}$\\[4pt]
+$\Downarrow$\\[2pt]
+\textbf{Classifier:} MLP (128$\rightarrow$64$\rightarrow$1) $\rightarrow$ $\hat{p}(y{=}1\mid x)$
+\end{minipage}}
+\end{tabular}
+\end{adjustbox}
+\caption{Overview of \menet{}. The gate $\mathbf{g}\in(0,1)^{128}$ is computed per document from both
+streams; $\mathbf{g}\to\mathbf{1}$ routes the fused representation through the contextual stream and
+$\mathbf{g}\to\mathbf{0}$ through the symbolic stream.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Indonesian Morpho-Evidential Profile}
+\label{sec:features}
+
+Indonesian is an agglutinative language in which voice, transitivity and nominalisation are marked
+by productive affixes \citep{sneddon2010indonesian}, and in which the source of information is
+signalled lexically rather than grammatically, e.g.\ \emph{konon} `reportedly', \emph{katanya}
+`they say', or \emph{menurut} `according to' \citep{aikhenvald2004evidentiality}. We hypothesise
+that fabricated news and professionally edited news differ in (i) how events are framed
+(agentive active vs.\ agentless passive voice, abstract nominalisation), (ii) how claims are sourced
+(institutional attribution vs.\ rumour evidentials), and (iii) register (sensationalism, colloquial
+discourse particles). The profiler maps every document to 13 real-valued features in four groups
+(Table~\ref{tab:features-def}). Counts are normalised to rates per 100 words so that the
+morphological and evidential groups are length-invariant.
+
+\begin{table}[t]
+\centering\small
+\caption{The 13 features of the symbolic profile $\bm{\phi}(x)$. $N$ is the number of word tokens;
+rates are occurrences per 100 words.}
+\label{tab:features-def}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{llp{8.2cm}}
+\toprule
+Group & Feature & Definition \\
+\midrule
+\multirow{5}{*}{Surface}
+ & Word count & $N$ \\
+ & Character count & number of characters \\
+ & Avg.\ word length & mean characters per token \\
+ & Type-token ratio & $|V|/N$ \\
+ & Hapax legomena ratio & (types occurring once)$/N$ \\
+\midrule
+\multirow{4}{*}{Morphological}
+ & Passive prefix & \emph{di-}, \emph{ter-}/\emph{te-} + lexicon root (e.g.\ \emph{di-tangkap}) \\
+ & Active prefix & \emph{meN-} (with allomorphs \emph{meng-/meny-/mem-/men-/me-}), \emph{ber-}/\emph{bel-}/\emph{be-} + root \\
+ & Nominal circumfix & \emph{ke-\ldots-an} around a root (e.g.\ \emph{ke-aman-an}) \\
+ & Discourse particles & free particles (\emph{kok, sih, dong, deh, lho, \ldots}) and bound clitics \emph{-lah, -kah, -tah, -pun} \\
+\midrule
+\multirow{4}{*}{Evidential}
+ & Rumour evidentials & 17 unverified-source triggers (\emph{dikabarkan, konon, katanya, bocoran, isunya, viralkan, \ldots}) \\
+ & Institutional attribution & 14 reporting/attribution triggers (\emph{menurut, ujar, tutur, juru bicara, siaran pers, \ldots}) \\
+ & Sensational markers & 17 emotive/hyperbolic markers (\emph{heboh, gawat, merinding, astagfirullah, \ldots}) \\
+ & Attribution/rumour ratio & $(r_{\text{inst}}+0.01)/(r_{\text{rumour}}+0.01)$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\paragraph{Lexicon-verified affix detection.}
+Naïve prefix matching badly over-counts affixes in Indonesian: \emph{dinas} `office' is not a passive
+of \emph{nas}, and \emph{menteri} `minister' is not an active form of \emph{teri}. Rather than running a full
+stemmer \citep{adriani2007stemming} over every token, we use a single-pass detector that strips a
+candidate prefix, restores the nasal-assimilated initial consonant where required
+(\emph{meny-}$\to$\emph{s}, \emph{meng-}$\to$\emph{k}, \emph{mem-}$\to$\emph{p}, \emph{men-}$\to$\emph{t}),
+and accepts the token only if the remainder is in a 29{,}931-entry root lexicon (the Sastrawi
+\emph{kata dasar} list). Tokens that are themselves lexicon roots (e.g.\ \emph{terbang}, \emph{berita})
+and a short curated list of frequent news-domain words are excluded, as are lexicalised
+clitic look-alikes (\emph{masalah}, \emph{sekolah}, \emph{walaupun}). Possessive \emph{-nya} is
+deliberately not treated as a discourse particle. Each token is counted in at most one of the passive,
+active and \emph{ke-an} categories, and decisions are memoised, so profiling is linear in corpus size.
+
+\subsection{Contextual Stream}
+Tokens $x_{1:L}$ (lower-cased, alphanumeric, truncated/padded to $L{=}256$) are embedded into
+$\mathbf{E}\in\mathbb{R}^{L\times 128}$. A 1D convolution with $F{=}128$ filters of width 5 followed by
+batch normalisation \citep{ioffe2015bn}, ReLU and global max-pooling yields a document vector
+\begin{equation}
+\mathbf{h}_t=\operatorname{Dropout}\!\Big(\max_{i}\;\operatorname{ReLU}\big(\operatorname{BN}(\mathbf{W}_c * \mathbf{E})\big)_i\Big)\in\mathbb{R}^{128},
+\end{equation}
+i.e.\ a single-width variant of the sentence CNN of \citet{kim2014cnn}.
+
+\subsection{Symbolic Stream}
+The profile is standardised with statistics from the training split only,
+$\tilde{\bm{\phi}}=(\bm{\phi}-\bm{\mu}_{\text{train}})/\bm{\sigma}_{\text{train}}$, and encoded by a two-layer MLP
+\begin{equation}
+\mathbf{h}_\ell=\operatorname{ReLU}\!\big(\mathbf{W}_2\,\operatorname{ReLU}(\operatorname{BN}(\mathbf{W}_1\tilde{\bm{\phi}}))\big)\in\mathbb{R}^{64}.
+\end{equation}
+
+\subsection{Gated Cross-Stream Fusion}
+Both streams are projected to a shared space of size $d{=}128$,
+$\mathbf{z}_t=\operatorname{ReLU}(\mathbf{P}_t\mathbf{h}_t)$ and $\mathbf{z}_\ell=\operatorname{ReLU}(\mathbf{P}_\ell\mathbf{h}_\ell)$.
+A gate conditioned on both views,
+\begin{equation}
+\mathbf{g}=\sigma\big(\mathbf{W}_g[\mathbf{z}_t;\mathbf{z}_\ell]+\mathbf{b}_g\big)\in(0,1)^{d},
+\end{equation}
+modulates the two projections in a complementary way, and the result is compressed back to $d$ dimensions:
+\begin{equation}
+\mathbf{h}=\operatorname{Dropout}_{0.2}\Big(\operatorname{ReLU}\big(\operatorname{LN}(\mathbf{W}_u[\mathbf{g}\odot\mathbf{z}_t;\;(\mathbf{1}-\mathbf{g})\odot\mathbf{z}_\ell])\big)\Big).
+\end{equation}
+Unlike plain concatenation, the complementary gate lets the network suppress the symbolic stream for
+documents where lexical evidence suffices and lean on it where the text stream is uninformative, and its
+activations can be inspected per document. The design follows the gated multimodal unit of
+\citet{arevalo2017gated}, but keeps both gated views instead of summing them.
+
+\subsection{Classifier and Training}
+A two-layer head produces the logit $s=\mathbf{w}_2^\top\operatorname{Dropout}(\operatorname{ReLU}(\mathbf{W}_3\mathbf{h}))$ and
+$\hat{p}=\sigma(s)$. The whole network is trained end-to-end with binary cross-entropy,
+$\mathcal{L}=-\frac{1}{|B|}\sum_{j\in B}\big[y_j\log\hat{p}_j+(1-y_j)\log(1-\hat{p}_j)\big]$, using AdamW
+\citep{loshchilov2019adamw}. The profiler has no trainable parameters; the symbolic stream and the fusion module together add
+0.10M parameters (4.03M in total) to the 3.93M of a text-only CNN with the same head, most of which
+is the 30k$\times$128 embedding table.

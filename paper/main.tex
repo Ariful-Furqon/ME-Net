@@ -1,0 +1,50 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{adjustbox}
+\usepackage{caption}
+
+\newcommand{\menet}{ME-Net}
+\newcommand{\iph}{IPH}
+
+\title{\menet{}: A Morpho-Evidential Gated Dual-Stream Network\\for Indonesian Hoax Detection}
+
+\author{
+  Ariful Furqon\\
+  Universitas Jember, Indonesia\\
+  \texttt{kriptogravis@gmail.com}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/method}
+\input{sections/setup}
+\input{sections/results}
+\input{sections/discussion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}
