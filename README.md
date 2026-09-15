@@ -37,3 +37,9 @@ cd paper && latexmk -pdf main.tex
 - [ ] Run the full experiments (preferably on GPU: the scripts currently train on CPU).
 - [ ] Run `analyze_results.py` and write `paper/sections/{abstract,introduction,results,discussion,appendix}.tex` from the real numbers.
 - [ ] Add the canonical citation for the Indonesia Political Hoax dataset (TODO in `paper/sections/setup.tex`).
+
+## License
+
+Code is released under the [MIT License](LICENSE).
+
+`src/data/lexicon_root.txt` is the root-word list from [PySastrawi](https://github.com/har07/PySastrawi) (MIT License, Copyright (c) Hanif Amal Robbani). The datasets are not covered by this license; see their original sources.
