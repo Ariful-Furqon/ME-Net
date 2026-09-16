@@ -1,15 +1,3 @@
-"""Low-data learning curves on short fact-checked claims, for Indonesian and English.
-
-Corpora (claim text only; evidence/justification columns are label leakage and are dropped by the
-loaders): X-FACT Indonesian (with its own out-of-site `ood` split) and LIAR2 English.
-
-Every model is trained at several training-set sizes so that the question is not "who wins on the full
-split" but "how much data does each model need". Training uses a fixed optimisation budget rather than a
-fixed number of epochs, so small training sets are not starved of gradient steps.
-
-Usage:
-    python scripts/run_claims.py --dataset both --seeds 13 21 42 87 100
-"""
 import argparse
 import json
 import math

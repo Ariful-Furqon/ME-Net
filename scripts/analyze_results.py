@@ -1,8 +1,3 @@
-"""Aggregate experiment outputs into LaTeX tables, statistical tests and figures for the paper.
-
-Usage:
-    python scripts/analyze_results.py --results results --paper paper
-"""
 import argparse
 import json
 from pathlib import Path

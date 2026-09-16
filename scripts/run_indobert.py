@@ -1,8 +1,3 @@
-"""Fine-tuned IndoBERT baseline (CPU-friendly settings) for the same splits used by run_experiments.py.
-
-Usage:
-    python scripts/run_indobert.py --setting original --seed 42
-"""
 import argparse
 import json
 import sys

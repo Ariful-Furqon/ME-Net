@@ -1,14 +1,3 @@
-"""Claim-level linguistic profile for short fact-checked statements.
-
-The document-level profiler (linguistic_profiler.py) normalises counts per 100 words, which is
-degenerate on 9-16 word claims: over 99% of claims contain no attribution or evidential marker at
-all, and the type-token ratio is almost always 1. This profiler keeps the same four groups
-(surface, quantification, evidential/attribution, stance and morphology) but uses raw counts and
-presence indicators, which stay informative at claim length.
-
-Feature names are shared across languages so that a single model definition serves both; only the
-lexicons and the morphological predicates are language-specific.
-"""
 import re
 from typing import Dict, List
 

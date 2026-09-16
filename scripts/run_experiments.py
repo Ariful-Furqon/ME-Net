@@ -1,12 +1,3 @@
-"""Main experiment driver for ME-Net.
-
-For one input setting (original text or format-normalised text) it trains every model
-variant over several seeds on the Indonesia Political Hoax (IPH) training split and
-evaluates on the IPH test split (in-domain) and on Rahutomo-600 (cross-dataset).
-
-Usage:
-    python scripts/run_experiments.py --setting original --seeds 13 21 42 87 100
-"""
 import argparse
 import json
 import os

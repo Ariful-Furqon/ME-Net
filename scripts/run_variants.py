@@ -1,17 +1,3 @@
-"""Variant study for the two measured defects: gate collapse and heavy-tailed symbolic features.
-
-Everything is scored on VALIDATION data only. The test split is not touched here, so that a variant can
-be chosen without contaminating the final comparison.
-
-Conditions crossed:
-  feature conditioning: standard | log | rankgauss
-  gate mode:            none (concat) | complementary | independent | residual
-  gate input:           projections only | projections + raw standardised features
-  gate variance penalty: 0 | lambda > 0
-
-Usage:
-    python scripts/run_variants.py --dataset iph --seeds 13 21 42 87 100
-"""
 import argparse
 import json
 import math

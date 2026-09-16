@@ -1,11 +1,3 @@
-"""Exception lists for the rule-based Indonesian affix and clitic detector.
-
-Two sources are combined:
-  1. Lexicalised exceptions derived from the root lexicon: a token that is itself a
-     root word (e.g. "dinas", "terbang", "menteri") is never counted as an affixed form,
-     even though stripping the prefix leaves another valid root ("nas", "bang", "teri").
-  2. Hand-curated lists for frequent news-domain words the lexicon does not cover.
-"""
 import os
 
 _LEXICON_PATH = os.path.join(os.path.dirname(__file__), "lexicon_root.txt")

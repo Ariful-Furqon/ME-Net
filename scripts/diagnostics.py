@@ -1,14 +1,3 @@
-"""Diagnostics separating dataset limitations from model limitations.
-
-Four analyses:
-  A. Headroom / learning curve   - how much training data is needed to saturate IPH.
-  B. Length-matched subsample    - is the label predictable from document length?
-  C. Rahutomo-600 cross-validation - do the features carry signal when trained in that domain?
-  D. Domain-shift probe          - how far apart are the two corpora in feature and lexical space?
-
-Usage:
-    python scripts/diagnostics.py --seeds 13 21 42
-"""
 import argparse
 import json
 import sys
