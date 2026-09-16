@@ -5,7 +5,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{microtype}
-\usepackage{amsmath,amssymb,bm}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{graphicx}
@@ -19,6 +21,11 @@
 
 \newcommand{\menet}{ME-Net}
 \newcommand{\iph}{IPH}
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
 
 \title{\menet{}: A Morpho-Evidential Gated Dual-Stream Network\\for Indonesian Hoax Detection}
 

@@ -1,0 +1,83 @@
+\section{Derivation of the Gate Jacobians}
+\label{app:jacobian}
+
+We derive Proposition~\ref{prop:grad}. Write $\mathbf{q}=\mathbf{W}_g[\mathbf{z}_t;\mathbf{z}_\ell]+\mathbf{b}_g$ with
+$\mathbf{W}_g=[\mathbf{W}_g^{[t]}\;\;\mathbf{W}_g^{[\ell]}]$, so $\mathbf{g}=\sigma(\mathbf{q})$ and
+$\partial\mathbf{g}/\partial\mathbf{q}=\operatorname{diag}(\mathbf{g}\odot(\mathbf{1}-\mathbf{g}))=:\operatorname{diag}(\bm{\delta})$.
+The pre-norm fused state is
+\begin{equation}
+\mathbf{s}=\mathbf{A}(\mathbf{g}\odot\mathbf{z}_t)+\mathbf{B}\big((\mathbf{1}-\mathbf{g})\odot\mathbf{z}_\ell\big)+\mathbf{b}_u .
+\end{equation}
+Differentiating with respect to $\mathbf{z}_t$ and using $\partial(\mathbf{g}\odot\mathbf{z}_t)/\partial\mathbf{z}_t
+=\operatorname{diag}(\mathbf{g})+\operatorname{diag}(\mathbf{z}_t)\,\partial\mathbf{g}/\partial\mathbf{z}_t$ with
+$\partial\mathbf{g}/\partial\mathbf{z}_t=\operatorname{diag}(\bm{\delta})\mathbf{W}_g^{[t]}$,
+\begin{align}
+\frac{\partial\mathbf{s}}{\partial\mathbf{z}_t}
+&=\mathbf{A}\operatorname{diag}(\mathbf{g})
++\mathbf{A}\operatorname{diag}(\mathbf{z}_t)\operatorname{diag}(\bm{\delta})\mathbf{W}_g^{[t]}
+-\mathbf{B}\operatorname{diag}(\mathbf{z}_\ell)\operatorname{diag}(\bm{\delta})\mathbf{W}_g^{[t]}\\
+&=\mathbf{A}\operatorname{diag}(\mathbf{g})
++\big(\mathbf{A}\operatorname{diag}(\mathbf{z}_t)-\mathbf{B}\operatorname{diag}(\mathbf{z}_\ell)\big)\operatorname{diag}(\bm{\delta})\mathbf{W}_g^{[t]},
+\end{align}
+the minus sign coming from $\partial(\mathbf{1}-\mathbf{g})/\partial\mathbf{z}_t=-\partial\mathbf{g}/\partial\mathbf{z}_t$.
+The expression for $\partial\mathbf{s}/\partial\mathbf{z}_\ell$ follows by symmetry with
+$\mathbf{B}\operatorname{diag}(\mathbf{1}-\mathbf{g})$ as the leading term and $\mathbf{W}_g^{[\ell]}$ in the feedback term.
+
+Two consequences are worth noting. First, since $\bm{\delta}=\mathbf{g}\odot(\mathbf{1}-\mathbf{g})\le\frac14$
+element-wise, the feedback terms are bounded relative to the leading terms whenever
+$\lVert\mathbf{W}_g\rVert$ is moderate, so the gate behaves like a smooth interpolation rather than a hard
+switch early in training. Second, a saturated coordinate ($g_j\!\to\!0$ or $1$) has
+$\delta_j\!\to\!0$, so it stops updating the gate itself: saturation is self-reinforcing, which is why we
+report the empirical distribution of $\bar g$ rather than assuming the gate stays in its linear regime.
+
+\section{Feature Extraction Complexity}
+\label{app:complexity}
+
+Algorithm~\ref{alg:profile} extracts $\bm{\Phi}$ in a single pass. With memoised per-token decisions, the
+amortised cost per token is $O(1)$ hash lookups: at most $|\mathrm{Pre}_{\text{pas}}|+|\mathrm{Pre}_{\text{act}}|=11$
+prefix tests, each with at most two allomorph restorations, and at most $|\mathcal{C}|=4$ clitic tests.
+Regular-expression matching over the three marker lexicons is linear in document length. Total cost is
+therefore $\Theta(N)$ per document with a small constant, independent of the neural configuration.
+
+\begin{algorithm}[h]
+\caption{Morpho-evidential profile $\bm{\Phi}$}
+\label{alg:profile}
+\begin{algorithmic}[1]
+\Require document text; root lexicon $\mathcal{L}$; exception sets; marker lexicons
+\State $w\gets$ lower-cased word tokens; $N\gets\max(|w|,1)$
+\State $c_{\text{pas}},c_{\text{act}},c_{\text{ke}},c_{\text{prt}}\gets0$
+\For{each token $t\in w$}
+  \If{$\pi_{\text{pas}}(t)$} $c_{\text{pas}}{+}{+}$
+  \ElsIf{$\pi_{\text{act}}(t)$} $c_{\text{act}}{+}{+}$
+  \ElsIf{$\pi_{\text{ke-an}}(t)$} $c_{\text{ke}}{+}{+}$
+  \EndIf
+  \If{$\pi_{\text{prt}}(t)$} $c_{\text{prt}}{+}{+}$ \EndIf
+\EndFor
+\State $c_{\text{rum}},c_{\text{ins}},c_{\text{sen}}\gets$ regex match counts of $\mathcal{R}_{\text{rum}},\mathcal{R}_{\text{ins}},\mathcal{R}_{\text{sen}}$
+\State convert all counts to rates by Eq.~\eqref{eq:rate}; compute $\Psi$ by Eq.~\eqref{eq:ratio}
+\State \Return $[\,N,\;|\text{text}|_{\text{ch}},\;\bar\lambda,\;\mathrm{TTR},\;\mathrm{HPX},\;r_{\text{pas}},r_{\text{act}},r_{\text{ke-an}},r_{\text{prt}},r_{\text{rum}},r_{\text{ins}},r_{\text{sen}},\Psi\,]$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Hyperparameters}
+\label{app:hyper}
+
+\begin{table}[h]
+\centering\small
+\caption{Training configuration shared by all neural models.}
+\begin{tabular}{ll}
+\toprule
+Setting & Value \\
+\midrule
+Vocabulary / min.\ token frequency & 30{,}000 / 2 \\
+Sequence length $L$ & 256 \\
+Embedding / filters / fusion width & 128 / 128 / 128 \\
+Convolution width $k$ & 5 \\
+Symbolic encoder width $d_\ell$ & 64 \\
+Dropout (encoder / fusion) & 0.3 / 0.2 \\
+Optimiser & AdamW, $\eta=10^{-3}$, $\lambda=10^{-4}$ \\
+Batch size / epochs & 64 / 5 \\
+Seeds & 13, 21, 42, 87, 100, 123, 256, 512, 777, 1024 \\
+\bottomrule
+\end{tabular}
+\end{table}
