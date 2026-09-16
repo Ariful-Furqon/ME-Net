@@ -43,10 +43,16 @@ def fmt(mean, std, n, bold=False, digits=3):
     return f"\\textbf{{{s}}}" if bold else s
 
 
+def wrap_tabular(colspec: str, header: str, body: str) -> str:
+    """Emit a complete tabular; \\input of a bare row list inside a tabular is not portable."""
+    return "\n".join(["\\begin{tabular}{" + colspec + "}", "\\toprule", header, "\\midrule", body,
+                      "\\bottomrule", "\\end{tabular}"])
+
+
 def main_table(runs: pd.DataFrame, setting: str) -> str:
-    d = runs[runs.setting == setting]
-    agg = d.groupby(["model", "split"]).agg(["mean", "std", "count"])
     metrics = [("Macro_F1", False), ("ROC_AUC", False), ("ECE", True)]
+    d = runs[runs.setting == setting]
+    agg = d.groupby(["model", "split"])[[m for m, _ in metrics]].agg(["mean", "std", "count"])
     lines = []
     best = {}
     for split in ["test", "rahutomo"]:
@@ -66,7 +72,10 @@ def main_table(runs: pd.DataFrame, setting: str) -> str:
         n = int(agg.loc[(mod, "test"), ("Macro_F1", "count")])
         cells.insert(1, str(n))
         lines.append(" & ".join(cells) + " \\\\")
-    return "\n".join(lines)
+    header = ("& & \\multicolumn{3}{c}{\\iph{} test (in-domain)} & \\multicolumn{3}{c}{Rahutomo-600 (cross-dataset)} \\\\\n"
+              "\\cmidrule(lr){3-5}\\cmidrule(lr){6-8}\n"
+              "Model & $n$ & Macro-F1 & ROC-AUC & ECE & Macro-F1 & ROC-AUC & ECE \\\\")
+    return wrap_tabular("lccccccc", header, "\n".join(lines))
 
 
 def significance_table(runs: pd.DataFrame) -> tuple[str, dict]:
@@ -93,7 +102,10 @@ def significance_table(runs: pd.DataFrame) -> tuple[str, dict]:
                 star = "$^{*}$" if r["p_holm"] < 0.05 else ""
                 cells.append(f"{100*r['delta_f1']:+.2f}{star} ({r['wins']}/{r['n']})")
         lines.append(" & ".join(cells) + " \\\\")
-    return "\n".join(lines), out
+    header = ("& \\multicolumn{2}{c}{Original text} & \\multicolumn{2}{c}{Normalised text} \\\\\n"
+              "\\cmidrule(lr){2-3}\\cmidrule(lr){4-5}\n"
+              "Comparison (\\menet{} $-$ variant) & in-domain & cross-dataset & in-domain & cross-dataset \\\\")
+    return wrap_tabular("lcccc", header, "\n".join(lines)), out
 
 
 def feature_table(results: Path) -> str:
@@ -105,7 +117,8 @@ def feature_table(results: Path) -> str:
         p_str = "$<$0.001" if p < 0.001 else f"{p:.3f}"
         lines.append(f"{FEATURE_LABELS[r['Feature']]} & {r['Hoax_Mean']:.3f} & {r['Valid_Mean']:.3f} & "
                      f"{r['cohens_d']:+.3f} & [{r['d_ci_lower']:+.3f}, {r['d_ci_upper']:+.3f}] & {p_str} \\\\")
-    return "\n".join(lines)
+    header = "Feature & Hoax & Valid & $d$ & 95\\% CI & $p_{\\text{Holm}}$ \\\\"
+    return wrap_tabular("lrrrcr", header, "\n".join(lines))
 
 
 def figures(results: Path, fig_dir: Path, runs: pd.DataFrame):
@@ -153,10 +166,17 @@ def figures(results: Path, fig_dir: Path, runs: pd.DataFrame):
         ax.set_title(title)
         ax.set_ylim(0.3, 1.0)
     axes[0].set_ylabel("Macro-F1")
-    axes[0].legend(frameon=False, loc="lower right")
-    fig.tight_layout()
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(0.5, 1.02))
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig(fig_dir / "indomain_vs_crossdataset.pdf")
     plt.close(fig)
+
+
+def write_tex(path, text):
+    """Write a LaTeX fragment with LF endings, ending in % so \\input inside a tabular adds no \\par."""
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text.rstrip() + "%\n")
 
 
 def main():
@@ -170,16 +190,18 @@ def main():
     runs = load_runs(results)
     for setting in ["original", "normalized"]:
         if (runs.setting == setting).any():
-            (paper / "tables" / f"main_{setting}.tex").write_text(main_table(runs, setting), encoding="utf-8")
+            write_tex(paper / "tables" / f"main_{setting}.tex", main_table(runs, setting))
     sig_tex, sig = significance_table(runs)
-    (paper / "tables" / "significance.tex").write_text(sig_tex, encoding="utf-8")
-    (paper / "tables" / "features.tex").write_text(feature_table(results), encoding="utf-8")
+    write_tex(paper / "tables" / "significance.tex", sig_tex)
+    write_tex(paper / "tables" / "features.tex", feature_table(results))
     figures(results, paper / "figures", runs)
 
     gate = pd.concat([pd.read_csv(results / s / "gate_stats.csv").assign(setting=s) for s in ["original", "normalized"]])
     summary = {
-        "means": runs.groupby(["setting", "split", "model"])[["Macro_F1", "ROC_AUC", "ECE", "Brier_Score", "Accuracy", "Hoax_Recall"]]
-        .agg(["mean", "std"]).round(4).reset_index().to_dict(orient="records"),
+        "means": (lambda t: t.set_axis([c if isinstance(c, str) else "_".join(c) for c in t.columns], axis=1)
+                  .to_dict(orient="records"))(
+            runs.groupby(["setting", "split", "model"])[["Macro_F1", "ROC_AUC", "ECE", "Brier_Score", "Accuracy", "Hoax_Recall"]]
+            .agg(["mean", "std"]).round(4).reset_index()),
         "significance": sig,
         "gate": gate.groupby(["setting", "split", "label"])["gate_mean"].agg(["mean", "std"]).round(4).reset_index().to_dict(orient="records"),
         "params": runs.groupby("model")["params"].first().dropna().astype(int).to_dict() if "params" in runs else {},

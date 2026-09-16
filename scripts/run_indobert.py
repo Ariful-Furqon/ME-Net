@@ -27,13 +27,14 @@ def encode(tok, texts, max_len):
     return enc["input_ids"], enc["attention_mask"]
 
 
-def predict(model, ids, mask, batch_size=64):
+def predict(model, ids, mask, device, batch_size=64):
     model.eval()
     probs = []
     with torch.no_grad():
         for i in range(0, len(ids), batch_size):
-            logits = model(input_ids=ids[i:i + batch_size], attention_mask=mask[i:i + batch_size]).logits
-            probs.append(torch.softmax(logits, dim=-1)[:, 1].numpy())
+            logits = model(input_ids=ids[i:i + batch_size].to(device),
+                           attention_mask=mask[i:i + batch_size].to(device)).logits
+            probs.append(torch.softmax(logits, dim=-1)[:, 1].cpu().numpy())
     return np.concatenate(probs)
 
 
@@ -46,9 +47,12 @@ def main():
     ap.add_argument("--batch_size", type=int, default=32)
     ap.add_argument("--lr", type=float, default=2e-5)
     ap.add_argument("--threads", type=int, default=12)
+    ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
+    device = torch.device(args.device)
+    print(f"device: {device}", flush=True)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -59,7 +63,7 @@ def main():
             d["Text"] = d["Text"].map(normalize_surface)
 
     tok = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2).to(device)
     enc = {k: encode(tok, v["Text"], args.max_len) for k, v in data.items()}
     y = {k: v["Label"].values for k, v in data.items()}
 
@@ -74,7 +78,7 @@ def main():
     for epoch in range(args.epochs):
         model.train()
         for ids, mask, labels in loader:
-            loss = model(input_ids=ids, attention_mask=mask, labels=labels).loss
+            loss = model(input_ids=ids.to(device), attention_mask=mask.to(device), labels=labels.to(device)).loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
@@ -88,7 +92,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     preds = {}
     for split in ["test", "rahutomo"]:
-        p = predict(model, *enc[split])
+        p = predict(model, *enc[split], device=device)
         preds[split] = p
         m = compute_classification_metrics(y[split], (p >= 0.5).astype(int), y_prob=p, n_bins=15)
         row = {"setting": args.setting, "model": "IndoBERT-base (fine-tuned)", "seed": args.seed, "split": split, **m,

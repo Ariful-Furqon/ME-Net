@@ -1,0 +1,21 @@
+\begin{tabular}{lccccccc}
+\toprule
+& & \multicolumn{3}{c}{\iph{} test (in-domain)} & \multicolumn{3}{c}{Rahutomo-600 (cross-dataset)} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+Model & $n$ & Macro-F1 & ROC-AUC & ECE & Macro-F1 & ROC-AUC & ECE \\
+\midrule
+Length-only LR & 1 & 0.654 & 0.783 & 0.117 & 0.521 & 0.484 & \textbf{0.104} \\
+Symbolic LR (13 feats) & 1 & 0.733 & 0.799 & 0.057 & 0.475 & 0.529 & 0.115 \\
+Pure Symbolic MLP & 10 & 0.775\,{\scriptsize$\pm$0.011} & 0.846\,{\scriptsize$\pm$0.005} & 0.074\,{\scriptsize$\pm$0.014} & 0.509\,{\scriptsize$\pm$0.022} & 0.554\,{\scriptsize$\pm$0.004} & 0.148\,{\scriptsize$\pm$0.011} \\
+\midrule
+TF-IDF + LR & 1 & 0.975 & \textbf{0.998} & 0.053 & \textbf{0.544} & 0.544 & 0.164 \\
+\midrule
+Pure 1D-CNN (w/o Symbolic) & 10 & 0.974\,{\scriptsize$\pm$0.003} & 0.997\,{\scriptsize$\pm$0.000} & 0.013\,{\scriptsize$\pm$0.002} & 0.520\,{\scriptsize$\pm$0.012} & 0.546\,{\scriptsize$\pm$0.009} & 0.320\,{\scriptsize$\pm$0.021} \\
+Naive Concatenation (w/o Gate) & 10 & \textbf{0.978\,{\scriptsize$\pm$0.001}} & 0.998\,{\scriptsize$\pm$0.000} & \textbf{0.012\,{\scriptsize$\pm$0.002}} & 0.530\,{\scriptsize$\pm$0.008} & 0.557\,{\scriptsize$\pm$0.008} & 0.298\,{\scriptsize$\pm$0.013} \\
+ME-Net w/o Evidentiality Priors & 10 & 0.976\,{\scriptsize$\pm$0.003} & 0.997\,{\scriptsize$\pm$0.000} & 0.014\,{\scriptsize$\pm$0.002} & 0.525\,{\scriptsize$\pm$0.018} & 0.547\,{\scriptsize$\pm$0.010} & 0.311\,{\scriptsize$\pm$0.021} \\
+ME-Net w/o Morphological Priors & 10 & 0.975\,{\scriptsize$\pm$0.003} & 0.997\,{\scriptsize$\pm$0.000} & 0.012\,{\scriptsize$\pm$0.003} & 0.527\,{\scriptsize$\pm$0.007} & 0.556\,{\scriptsize$\pm$0.007} & 0.299\,{\scriptsize$\pm$0.027} \\
+ME-Net w/o Length Features & 10 & 0.975\,{\scriptsize$\pm$0.004} & 0.997\,{\scriptsize$\pm$0.000} & 0.012\,{\scriptsize$\pm$0.003} & 0.512\,{\scriptsize$\pm$0.019} & 0.551\,{\scriptsize$\pm$0.010} & 0.322\,{\scriptsize$\pm$0.030} \\
+\midrule
+ME-Net (Full) & 10 & 0.976\,{\scriptsize$\pm$0.004} & 0.997\,{\scriptsize$\pm$0.000} & 0.012\,{\scriptsize$\pm$0.002} & 0.527\,{\scriptsize$\pm$0.011} & \textbf{0.561\,{\scriptsize$\pm$0.006}} & 0.296\,{\scriptsize$\pm$0.028} \\
+\bottomrule
+\end{tabular}%

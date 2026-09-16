@@ -34,12 +34,14 @@ from src.models.ablation_study import NaiveConcatFusionNet, Pure1DCNNNet, PureSy
 from src.models.me_fusion import MorphoEvidentialNet, MorphoTextDataset
 
 EPOCHS, BATCH_SIZE, LR, WEIGHT_DECAY = 5, 64, 1e-3, 1e-4
+DEVICE = torch.device("cpu")
 
 
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 def predict(model, seqs, ling):
@@ -48,13 +50,14 @@ def predict(model, seqs, ling):
     probs = []
     with torch.no_grad():
         for s, l, _ in loader:
-            logits, _ = model(s, l)
-            probs.append(torch.sigmoid(logits).numpy())
+            logits, _ = model(s.to(DEVICE), l.to(DEVICE))
+            probs.append(torch.sigmoid(logits).cpu().numpy())
     return np.concatenate(probs)
 
 
 def train_neural(model, seqs, ling, labels, seed):
     set_seed(seed)
+    model = model.to(DEVICE)
     loader = DataLoader(MorphoTextDataset(seqs, ling, labels), batch_size=BATCH_SIZE, shuffle=True,
                         generator=torch.Generator().manual_seed(seed))
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
@@ -63,8 +66,8 @@ def train_neural(model, seqs, ling, labels, seed):
         model.train()
         for s, l, y in loader:
             opt.zero_grad()
-            logits, _ = model(s, l)
-            crit(logits, y).backward()
+            logits, _ = model(s.to(DEVICE), l.to(DEVICE))
+            crit(logits, y.to(DEVICE)).backward()
             opt.step()
     return model
 
@@ -72,7 +75,7 @@ def train_neural(model, seqs, ling, labels, seed):
 def gate_statistics(model, seqs, ling):
     """Mean text-stream gate value g per sample (g -> 1: text stream dominates, g -> 0: linguistic stream)."""
     captured = []
-    hook = model.fusion.gate.register_forward_hook(lambda m, i, o: captured.append(o.mean(dim=-1).detach()))
+    hook = model.fusion.gate.register_forward_hook(lambda m, i, o: captured.append(o.mean(dim=-1).detach().cpu()))
     predict(model, seqs, ling)
     hook.remove()
     return torch.cat(captured).numpy()
@@ -83,9 +86,13 @@ def main():
     ap.add_argument("--setting", choices=["original", "normalized"], default="original")
     ap.add_argument("--seeds", type=int, nargs="+", default=[13, 21, 42, 87, 100])
     ap.add_argument("--threads", type=int, default=12)
+    ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
+    global DEVICE
+    DEVICE = torch.device(args.device)
+    print(f"device: {DEVICE}", flush=True)
 
     out_dir = Path(args.out) / args.setting
     out_dir.mkdir(parents=True, exist_ok=True)
