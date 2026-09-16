@@ -64,7 +64,6 @@ def train_neural(model, seqs, ling, labels, seed):
 
 
 def gate_statistics(model, seqs, ling):
-    """Mean text-stream gate value g per sample (g -> 1: text stream dominates, g -> 0: linguistic stream)."""
     captured = []
     hook = model.fusion.gate.register_forward_hook(lambda m, i, o: captured.append(o.mean(dim=-1).detach().cpu()))
     predict(model, seqs, ling)

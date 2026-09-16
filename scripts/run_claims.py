@@ -30,7 +30,6 @@ SIZES = [250, 500, 1000, 2000, 4000, 8000, 16000]
 
 
 def train_budgeted(model, seqs, ling, labels, seed):
-    """Train with a fixed optimisation budget: >= MIN_STEPS updates, >= MIN_EPOCHS passes."""
     R.set_seed(seed)
     model = model.to(R.DEVICE)
     drop_last = len(labels) > BATCH_SIZE

@@ -1,14 +1,3 @@
-"""Fusion and feature-conditioning variants addressing two measured defects of ME-Net.
-
-Defect 1 - gate collapse. In the trained base model the mean gate stays inside [0.26, 0.45] for every
-document, i.e. it learns an almost constant mixing weight. That is the W_g -> 0 special case of the
-expressiveness proposition, so the gated model degenerates to naive concatenation.
-
-Defect 2 - heavy-tailed symbolic features. After standardisation the profile has skewness up to 33 and
-|z| up to 72 while the 99th percentile is below 4, so a few outliers dominate the symbolic projection.
-
-Variants below are selected on validation data only.
-"""
 from typing import Tuple
 
 import numpy as np
@@ -20,10 +9,6 @@ from sklearn.preprocessing import QuantileTransformer, StandardScaler
 
 
 class FeatureConditioner:
-    """log1p on non-negative columns followed by a rank-gauss transform, then standardisation.
-
-    Fitted on training data only; unseen values are interpolated by the quantile transformer.
-    """
 
     def __init__(self, mode: str = "rankgauss", n_quantiles: int = 1000, random_state: int = 0):
         if mode not in ("standard", "log", "rankgauss"):
@@ -62,17 +47,6 @@ class FeatureConditioner:
 
 
 class FlexibleFusion(nn.Module):
-    """Cross-stream fusion with selectable gating behaviour.
-
-    gate_mode:
-      'complementary' - the original g / (1-g) split.
-      'independent'   - two gates, so a coordinate may take both streams or neither.
-      'residual'      - plain concatenation plus a gated correction term.
-      'none'          - plain concatenation (control).
-
-    gate_on_features additionally feeds the standardised symbolic vector straight into the gate, so the
-    gate can condition on the raw evidence rather than only on post-ReLU projections.
-    """
 
     def __init__(self, text_dim: int, ling_dim: int, hidden_dim: int = 128,
                  gate_mode: str = "complementary", gate_on_features: bool = False,
@@ -127,11 +101,6 @@ class FlexibleFusion(nn.Module):
 
 
 class MENetV2(nn.Module):
-    """ME-Net with the flexible fusion block and an optional gate-variance regulariser.
-
-    The regulariser penalises a gate whose value barely varies across the batch, which is exactly the
-    collapse observed in the base model; it is returned as an auxiliary loss term, not applied here.
-    """
 
     def __init__(self, vocab_size: int, ling_feature_dim: int = 13, embed_dim: int = 128,
                  num_filters: int = 128, kernel_size: int = 5, hidden_dim: int = 128,
@@ -163,7 +132,6 @@ class MENetV2(nn.Module):
         return self.classifier(h_fused).squeeze(-1), h_fused
 
     def gate_variance_penalty(self) -> torch.Tensor:
-        """-var_batch(g), so minimising it pushes the gate away from a constant solution."""
         g = self.fusion.last_gate
         if g is None:
             return torch.zeros((), device=next(self.parameters()).device)

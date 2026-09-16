@@ -60,7 +60,6 @@ ALLOMORPH = {
 }
 
 class AffixDetector:
-    """Pure allomorph and lexicon set-based Indonesian affix detector (10^6 checks/sec)."""
 
     def __init__(self, lexicon_path: str = "data/lexicon_root.txt", lexicon: Set[str] = None):
         if lexicon is not None:
@@ -125,7 +124,6 @@ class AffixDetector:
         return val
 
 class IndonesianLinguisticProfiler:
-    """Extracts multidimensional linguistic and stylistic deception markers from Indonesian texts."""
 
     def __init__(self, lexicon_path: str = None):
         self.re_words = re.compile(r'\b[a-zA-Z0-9_\-]+\b')
@@ -148,7 +146,6 @@ class IndonesianLinguisticProfiler:
         self.re_sensational = re.compile("|".join(SENSATIONAL_MARKER_PATTERNS), re.IGNORECASE)
 
     def is_discourse_particle(self, tok: str) -> bool:
-        """Determines if a token is a discourse particle (free particle or valid bound clitic)."""
         if tok in self._particle_cache:
             return self._particle_cache[tok]
         if tok in FREE_PARTICLES:
@@ -170,7 +167,6 @@ class IndonesianLinguisticProfiler:
         return False
 
     def extract_features_single(self, text: str) -> Dict[str, float]:
-        """Extract linguistic feature dictionary for a single text instance."""
         if not isinstance(text, str) or len(text.strip()) == 0:
             return {k: 0.0 for k in self.feature_names()}
 
@@ -246,7 +242,6 @@ class IndonesianLinguisticProfiler:
         ]
 
     def profile_dataframe(self, df: pd.DataFrame, text_col: str = "Text", cache_dir: str = "results/cache") -> pd.DataFrame:
-        """Extracts features for all texts in dataframe with versioned Parquet disk caching."""
         # Key on the texts, the extractor source and the lexicon, so any extractor change invalidates the cache.
         src_dir = os.path.dirname(__file__)
         extractor_src = "".join(
@@ -273,7 +268,6 @@ class IndonesianLinguisticProfiler:
         n_bootstraps: int = 2000,
         random_state: int = 42
     ) -> pd.DataFrame:
-        """Computes Mann-Whitney U, Welch t-test, Cohen's d with bootstrap 95% CI, and Holm correction."""
         feature_df = self.profile_dataframe(df, text_col=text_col)
         results = []
 

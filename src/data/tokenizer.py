@@ -5,7 +5,6 @@ import numpy as np
 
 
 class SimpleTokenizer:
-    """Lower-cased word-level tokenizer with a frequency-capped vocabulary and fixed-length padding."""
 
     def __init__(self, max_vocab: int = 30000, max_len: int = 256, min_freq: int = 2):
         self.max_vocab = max_vocab

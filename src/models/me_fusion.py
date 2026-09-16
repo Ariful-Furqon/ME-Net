@@ -10,7 +10,6 @@ from sklearn.preprocessing import StandardScaler
 from src.evaluation.metrics import compute_classification_metrics
 
 class MorphoTextDataset(Dataset):
-    """Dataset storing token sequences, symbolic linguistic feature vectors, and binary labels."""
     def __init__(self, sequences: np.ndarray, linguistic_feats: np.ndarray, labels: np.ndarray):
         self.sequences = torch.tensor(sequences, dtype=torch.long)
         self.linguistic_feats = torch.tensor(linguistic_feats, dtype=torch.float32)
@@ -23,7 +22,6 @@ class MorphoTextDataset(Dataset):
         return self.sequences[idx], self.linguistic_feats[idx], self.labels[idx]
 
 class GatedCrossModalFusion(nn.Module):
-    """Gated Cross-Modal Fusion module that dynamically gates contextual representations based on symbolic linguistic priors."""
     def __init__(self, text_dim: int, ling_dim: int, hidden_dim: int = 128):
         super().__init__()
         self.proj_text = nn.Linear(text_dim, hidden_dim)
@@ -54,11 +52,6 @@ class GatedCrossModalFusion(nn.Module):
         return out
 
 class MorphoEvidentialNet(nn.Module):
-    """
-    Morpho-Evidential Informed Neural Network (ME-Net).
-    Dual-stream architecture combining a contextual convolutional backbone with
-    explicit evidential & morphological deception priors.
-    """
     def __init__(
         self,
         vocab_size: int,
@@ -114,7 +107,6 @@ class MorphoEvidentialNet(nn.Module):
         return logits, h_fused
 
 class MorphoEvidentialTrainer:
-    """Trainer for ME-Net with auxiliary contrastive and classification objectives."""
     def __init__(
         self,
         tokenizer,

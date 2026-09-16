@@ -10,7 +10,6 @@ from src.models.me_fusion import MorphoTextDataset, MorphoEvidentialNet, GatedCr
 from src.evaluation.metrics import compute_classification_metrics
 
 class NaiveConcatFusionNet(nn.Module):
-    """Ablation Variant: Replaces Gated Cross-Modal Fusion with Simple Concatenation."""
     def __init__(self, vocab_size: int, ling_dim: int, embed_dim: int = 128, num_filters: int = 128, dropout: float = 0.3):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=0)
@@ -40,7 +39,6 @@ class NaiveConcatFusionNet(nn.Module):
         return logits, h_fused
 
 class Pure1DCNNNet(nn.Module):
-    """Ablation Variant: Classification using ONLY contextual text sequence representations."""
     def __init__(self, vocab_size: int, embed_dim: int = 128, num_filters: int = 128, dropout: float = 0.3):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=0)
@@ -62,7 +60,6 @@ class Pure1DCNNNet(nn.Module):
         return logits, h_text
 
 class PureSymbolicMLP(nn.Module):
-    """Ablation Variant: Classification using ONLY symbolic morpho-evidential features."""
     def __init__(self, ling_dim: int = 13, hidden_dim: int = 64, dropout: float = 0.2):
         super().__init__()
         self.net = nn.Sequential(
@@ -80,7 +77,6 @@ class PureSymbolicMLP(nn.Module):
         return logits, x_ling
 
 class AblationStudyRunner:
-    """Trains and evaluates the 6 ME-Net ablation variants."""
     def __init__(self, tokenizer, profiler, device: str = None):
         self.tokenizer = tokenizer
         self.profiler = profiler

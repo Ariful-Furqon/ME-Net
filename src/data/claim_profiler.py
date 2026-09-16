@@ -65,7 +65,6 @@ def _compile(patterns: List[str]) -> re.Pattern:
 
 
 class ClaimProfiler:
-    """Language-parameterised claim-level profiler producing the 15 features in FEATURE_NAMES."""
 
     def __init__(self, language: str = "id", affix_detector=None):
         if language not in ("id", "en"):
@@ -126,13 +125,11 @@ class ClaimProfiler:
         return pd.DataFrame([self.extract_features_single(t) for t in texts], columns=FEATURE_NAMES)
 
     def zero_rates(self, texts) -> pd.Series:
-        """Share of documents for which each feature is exactly zero (a degeneracy check)."""
         f = self.profile(texts)
         return (f == 0).mean()
 
 
 def significance(features: pd.DataFrame, labels: np.ndarray) -> pd.DataFrame:
-    """Mann-Whitney U with Holm correction and Cohen's d, as in the document-level profiler."""
     from scipy import stats
     from statsmodels.stats.multitest import multipletests
 

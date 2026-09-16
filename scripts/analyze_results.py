@@ -39,7 +39,6 @@ def fmt(mean, std, n, bold=False, digits=3):
 
 
 def wrap_tabular(colspec: str, header: str, body: str) -> str:
-    """Emit a complete tabular; \\input of a bare row list inside a tabular is not portable."""
     return "\n".join(["\\begin{tabular}{" + colspec + "}", "\\toprule", header, "\\midrule", body,
                       "\\bottomrule", "\\end{tabular}"])
 
@@ -169,7 +168,6 @@ def figures(results: Path, fig_dir: Path, runs: pd.DataFrame):
 
 
 def write_tex(path, text):
-    """Write a LaTeX fragment with LF endings, ending in % so \\input inside a tabular adds no \\par."""
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text.rstrip() + "%\n")
 

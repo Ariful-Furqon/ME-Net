@@ -48,7 +48,6 @@ def train(model, seqs, ling, labels, seed, gate_penalty=0.0):
 
 
 def gate_stats(model, seqs, ling):
-    """Mean and per-document spread of the gate on held-out data."""
     vals = []
     loader = DataLoader(R.MorphoTextDataset(seqs, ling, np.zeros(len(seqs))), batch_size=256, shuffle=False)
     model.eval()

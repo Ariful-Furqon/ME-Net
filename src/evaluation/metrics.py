@@ -3,7 +3,6 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 
 
 def expected_calibration_error(y_true, y_prob, n_bins: int = 15) -> float:
-    """Binary ECE with equal-width bins over the confidence of the predicted class."""
     y_true = np.asarray(y_true).astype(int)
     y_prob = np.asarray(y_prob, dtype=float)
     pred = (y_prob >= 0.5).astype(int)
