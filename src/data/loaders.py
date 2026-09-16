@@ -33,6 +33,47 @@ def load_rahutomo():
     return df[["Text", "Label"]].reset_index(drop=True)
 
 
+XFACT_DIR = "data/x-fact"
+LIAR_DIR = "data/liar"
+
+# X-FACT verdicts kept, mapped to binary. "other" and "complicated/hard to categorise" are dropped.
+XFACT_FALSE = {"false"}
+XFACT_TRUE = {"true", "partly true/misleading"}
+
+
+def load_xfact(language: str = "id"):
+    """X-FACT claims for one language, binarised as false vs. not-entirely-false.
+
+    Only the claim text is used: the evidence_* columns are snippets collected by the fact-checker
+    while writing the verdict, so they leak the label.
+    """
+    out = {}
+    for split in ["train", "dev", "test", "ood"]:
+        df = pd.read_csv(f"{XFACT_DIR}/{split}.csv")
+        df = df[df["language"] == language]
+        df = df[df["label"].isin(XFACT_FALSE | XFACT_TRUE)]
+        df = pd.DataFrame({"Text": df["claim"].astype(str).values,
+                           "Label": df["label"].isin(XFACT_FALSE).astype(int).values,
+                           "Site": df["site"].values})
+        out[split] = df[df["Text"].str.strip().str.len() > 0].reset_index(drop=True)
+    return out
+
+
+def load_liar2():
+    """LIAR2 statements, binarised as false (pants-fire/false/barely-true) vs. true.
+
+    Only the statement is used: `justification` is the fact-checker's write-up of the verdict and
+    `speaker_description`/history counts are metadata rather than claim language.
+    """
+    out = {}
+    for split, name in [("train", "train"), ("dev", "validation"), ("test", "test")]:
+        df = pd.read_csv(f"{LIAR_DIR}/{name}.csv")
+        df = pd.DataFrame({"Text": df["statement"].astype(str).values,
+                           "Label": (df["label"] <= 2).astype(int).values})
+        out[split] = df[df["Text"].str.strip().str.len() > 0].reset_index(drop=True)
+    return out
+
+
 _RE_NONALNUM = re.compile(r"[^a-z0-9\s]+")
 
 
