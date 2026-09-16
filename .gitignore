@@ -9,3 +9,6 @@ __pycache__/
 
 # Paper draft is kept out of the repository
 /paper/
+
+# Session handoff notes, deliberately untracked
+/HANDOFF.md
