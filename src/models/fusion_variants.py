@@ -59,13 +59,25 @@ class FlexibleFusion(nn.Module):
         self.proj_ling = nn.Linear(ling_dim, hidden_dim)
 
         gate_in = hidden_dim * 2 + (raw_feature_dim if gate_on_features else 0)
-        n_gates = 2 if gate_mode == "independent" else 1
+        if gate_mode == "independent":
+            gate_out = hidden_dim * 2
+        elif gate_mode == "convex_scalar":
+            gate_out = 1
+        else:
+            gate_out = hidden_dim
         if gate_mode != "none":
-            self.gate = nn.Linear(gate_in, hidden_dim * n_gates)
+            self.gate = nn.Linear(gate_in, gate_out)
             nn.init.zeros_(self.gate.bias)
             nn.init.normal_(self.gate.weight, std=0.05)
+
+        # The convex modes mix the streams by summation, so the fused vector keeps
+        # the hidden width instead of doubling it. That is the whole point: under
+        # concatenation a constant gate is absorbed into this layer's weights
+        # (W1 diag(g) is just another learnable matrix), so collapsing costs the
+        # model nothing. Summing makes a constant gate destroy information.
+        fused_dim = hidden_dim if gate_mode in ("convex", "convex_scalar") else hidden_dim * 2
         self.fusion_out = nn.Sequential(
-            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.Linear(fused_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.2),
@@ -85,7 +97,11 @@ class FlexibleFusion(nn.Module):
             gate_in = torch.cat([gate_in, raw_feats], dim=-1)
         pre = self.gate(gate_in) / self.temperature
 
-        if self.gate_mode == "independent":
+        if self.gate_mode in ("convex", "convex_scalar"):
+            g = torch.sigmoid(pre)          # (B, H) or (B, 1), broadcast over H
+            self.last_gate = g
+            fused = g * z_t + (1.0 - g) * z_l
+        elif self.gate_mode == "independent":
             g_t, g_l = torch.sigmoid(pre).chunk(2, dim=-1)
             self.last_gate = g_t
             fused = torch.cat([g_t * z_t, g_l * z_l], dim=-1)
