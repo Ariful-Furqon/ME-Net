@@ -51,6 +51,26 @@ def pivot(df, values, index="variant", columns=None, order=None):
     return t
 
 
+def retention(df, order=None):
+    """Share of each seed's own clean Macro-F1 that survives corruption.
+
+    Absolute F1 under corruption conflates robustness with where a variant
+    started: on IPH the scalar gate begins at 0.938 against ~0.979 for the
+    others, so part of its apparent advantage at level 0.5 is recovery from a
+    worse starting point. Normalising per seed separates the two.
+    """
+    base = (df[df["level"] == 0.0]
+            .groupby(["variant", "seed"])["Macro_F1"].mean()
+            .rename("clean"))
+    m = df.merge(base, on=["variant", "seed"], how="left")
+    m = m[m["clean"] > 0]
+    m["retained"] = m["Macro_F1"] / m["clean"]
+    t = m.pivot_table(index="variant", columns="level", values="retained", aggfunc="mean")
+    if order:
+        t = t.reindex([v for v in order if v in t.index])
+    return t
+
+
 def table_gate_dispersion():
     print("=" * 78)
     print("TABLE 1  Gate dispersion across documents, by fusion form")
@@ -118,6 +138,12 @@ def table_degradation():
         emit(f"t3_{ds}_mask_gate", gm,
              f"Mean gate value under token masking ({ds}). A gate that routes should "
              f"fall as the text becomes unreadable.", f"tab:mask-gate-{ds}")
+        print("  share of each seed's own clean score retained:")
+        emit(f"t3_{ds}_mask_retained", retention(m, VARIANT_ORDER),
+             f"Share of each seed's own uncorrupted Macro-F1 retained under masking "
+             f"({ds}). Normalising per seed separates robustness from where a variant "
+             f"started, which differs across variants on the clean split.",
+             f"tab:mask-retained-{ds}", float_fmt="%.3f")
 
 
 def table_augmentation():
@@ -136,6 +162,11 @@ def table_augmentation():
          "training as well as at test time. Every augmented variant converges to the "
          "same band; the gate is not what delivers robustness.",
          "tab:augment-f1")
+    print("  share of each seed's own clean score retained:")
+    emit("t4_augment_retained", retention(d, AUG_ORDER),
+         "Share of each seed's own uncorrupted Macro-F1 retained, with the text "
+         "stream corrupted during training as well as at test time.",
+         "tab:augment-retained", float_fmt="%.3f")
     at50 = d[d["level"] == 0.5]
     summ = at50.groupby("variant").agg(
         F1_at_0p5=("Macro_F1", "mean"), sd=("Macro_F1", "std"),
